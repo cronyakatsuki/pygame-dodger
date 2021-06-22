@@ -1,9 +1,10 @@
-import pygame, random, sys
+import pygame, random, sys, time
 
 # global variables
 windowWidth = 800
 windowHeight = 800
 fps = 60
+textColor = (255,255,255)
 
 # initialize pygame and create a window
 pygame.init()
@@ -25,6 +26,70 @@ def redrawGameWindow():
     man.draw(window)
     
     pygame.display.update()
+    
+def drawText(text, font, window, x,y):
+    textObj = font.render(text, 1, textColor)
+    textRect = textObj.get_rect()
+    textRect.topleft = (x - textObj.get_width() // 2,y - textObj.get_height() // 2)
+    window.blit(textObj, textRect)
+
+def waitForKeyPress():
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    dodger.run = False
+                    dodger.retry = True
+                return
+
+def resetGame(player, baddies, gameLogic):
+    window.fill((0,0,0))
+    player.x = 100
+    player.y = 700
+    
+    baddies.clear()
+    
+    gameLogic.retry = False
+    gameLogic.timer = 0
+    pygame.display.update()
+    
+def askForRetry(keys, gameLogic):
+    window.fill((0,0,0))
+    drawText("Wanna try again? y/n", font, window, windowHeight / 2, windowWidth / 2)
+    pygame.display.update()
+    
+    if keys[pygame.K_y]:
+        gameLogic.lost = False
+        gameLogic.retry = True
+    if keys[pygame.K_n]:
+        gameLogic.run = False
+
+class game(object):
+    def __init__(self):
+        self.timer = 0
+        self.run = True
+        self.lost = False
+        self.retry = False
+        pass
+    
+    def play(self, keys, baddies, baddiesSpawnRate, player):
+        if self.timer % baddiesSpawnRate == 0:
+            baddies.append(enemy())
+        
+        for baddie in baddies:
+            baddie.move()
+            
+            if player.hitbox.colliderect(baddie.hitbox):
+                self.lost = True
+            
+            if baddie.y + baddie.height + 10 > windowHeight:
+                baddies.pop(baddies.index(baddie))
+        
+        player.move(keys)
+        
+        self.timer += 1
 
 # enemy class
 class enemy(object):
@@ -72,43 +137,43 @@ class player(object):
             self.y -= self.moveSpeed
         if keys[pygame.K_DOWN] and self.y < windowHeight - self.height - 50:
             self.y += self.moveSpeed
-        
 
 man = player(100, 700, 30, 30)
 baddies = []
 baddieSpawnRate = 40
-timer = 0
+font = pygame.font.SysFont(None, 48)
+dodger = game()
+
+drawText('Dodger', font, window, (windowWidth / 2), (windowHeight / 2 - 30))
+drawText('Press a key to start.', font, window, (windowWidth / 2), (windowHeight / 2 + 30))
+    
+pygame.display.update()
+    
+waitForKeyPress()
 
 # main loop
-run = True
-while run:
-    if timer % baddieSpawnRate == 0:
-        baddies.append(enemy())
-    
-    for baddie in baddies:
-        baddie.move()
-        
-        if man.hitbox.colliderect(baddie.hitbox):
-            run = False
-        
-        if baddie.y + baddie.height + 10 > windowHeight:
-            baddies.pop(baddies.index(baddie))
+while dodger.run:
+    clock.tick(fps)
     
     keys = pygame.key.get_pressed()
     
-    clock.tick(fps)
-    
-    man.move(keys)
-    
-    redrawGameWindow()
-    
-    timer += 1
+    if dodger.lost:
+        askForRetry(keys, dodger)
+    else :
+        if dodger.retry:
+                resetGame(man, baddies, dodger)
+        dodger.play(keys, baddies, baddieSpawnRate, man)
+        redrawGameWindow()
     
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            run = False
-    
+            terminate()
+        
     if keys[pygame.K_ESCAPE]:
-        run = False
+        dodger.run = False
 
+window.fill((0,0,0))
+drawText('Goodbye', font, window, (windowWidth / 2 ), (windowHeight / 2))
+pygame.display.update()
+time.sleep(1)
 terminate()
