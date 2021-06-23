@@ -17,15 +17,6 @@ pygame.mouse.set_visible(False)
 def terminate():
     pygame.quit()
     sys.exit()
-
-def redrawGameWindow():
-    window.fill((0,0,0))
-    
-    for baddie in baddies:
-        baddie.draw(window)
-    man.draw(window)
-    
-    pygame.display.update()
     
 def drawText(text, font, window, x,y):
     textObj = font.render(text, 1, textColor)
@@ -45,15 +36,12 @@ def waitForKeyPress():
                 return
 
 def resetGame(player, baddies, gameLogic):
-    window.fill((0,0,0))
     player.x = 100
     player.y = 700
     
     baddies.clear()
     
-    gameLogic.retry = False
     gameLogic.timer = 0
-    pygame.display.update()
     
 def askForRetry(keys, gameLogic):
     window.fill((0,0,0))
@@ -62,7 +50,6 @@ def askForRetry(keys, gameLogic):
     
     if keys[pygame.K_y]:
         gameLogic.lost = False
-        gameLogic.retry = True
     if keys[pygame.K_n]:
         gameLogic.run = False
 
@@ -71,7 +58,6 @@ class game(object):
         self.timer = 0
         self.run = True
         self.lost = False
-        self.retry = False
         pass
     
     def play(self, keys, baddies, baddiesSpawnRate, player):
@@ -90,6 +76,14 @@ class game(object):
         player.move(keys)
         
         self.timer += 1
+        
+        self.draw(baddies, player)
+    def draw(self, baddies, player):
+        window.fill((0,0,0))
+        for baddie in baddies:
+            baddie.draw(window)
+        player.draw(window)
+        pygame.display.update()
 
 # enemy class
 class enemy(object):
@@ -158,13 +152,11 @@ while dodger.run:
     keys = pygame.key.get_pressed()
     
     if dodger.lost:
+        if dodger.timer > 0:
+            resetGame(man, baddies, dodger)
         askForRetry(keys, dodger)
     else :
-        if dodger.retry:
-                resetGame(man, baddies, dodger)
         dodger.play(keys, baddies, baddieSpawnRate, man)
-        redrawGameWindow()
-    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             terminate()
